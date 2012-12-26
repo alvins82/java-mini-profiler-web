@@ -39,6 +39,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import au.com.funkworks.jmp.interfaces.CacheProfilerService;
 
@@ -52,10 +54,14 @@ import au.com.funkworks.jmp.interfaces.CacheProfilerService;
  */
 public class MiniProfilerServlet extends HttpServlet {
 	
+	private static final Logger logger = LoggerFactory.getLogger(MiniProfilerServlet.class);
+	
 	private static final long serialVersionUID = 7906645907029238585L;
 	
 	private static final String HTML_ID_PREFIX_KEY = "htmlIdPrefix";
-	private static final String RESOURCE_CACHE_HOURS_KEY = "resourceCacheHours";
+	private static final String RESOURCE_CACHE_HOURS_KEY = "resourceCacheHours";	
+	
+	private static final String servletURL = "/java_mini_profile/";	
 
 	/**
 	 * The prefix for all HTML element ids/classes used in the profiler UI. This
@@ -74,7 +80,7 @@ public class MiniProfilerServlet extends HttpServlet {
 	 * The loader that will load the static resources for the profiler UI from
 	 * files in the classpath.
 	 */
-	private MiniProfilerResourceLoader resourceLoader;
+	private MiniProfilerResourceLoader resourceLoader;	
 
 	/** Map of string replacements that will be done on loaded resources. */
 	private Map<String, String> resourceReplacements = new HashMap<String, String>();
@@ -84,6 +90,7 @@ public class MiniProfilerServlet extends HttpServlet {
 
 	@Override
 	public void init(ServletConfig config) throws ServletException {
+		logger.debug("Init'ing mini-profiler servlet");
 		super.init(config);
 				
 		String configHtmlIdPrefix = config.getInitParameter(HTML_ID_PREFIX_KEY);
@@ -93,7 +100,8 @@ public class MiniProfilerServlet extends HttpServlet {
 		String configResourceCacheHours = config.getInitParameter(RESOURCE_CACHE_HOURS_KEY);
 		if (!isEmpty(configResourceCacheHours)) {
 			resourceCacheHours = Integer.parseInt(configResourceCacheHours);
-		}
+			logger.debug("Resource cache hours set to {}", resourceCacheHours);
+		}		
 				
 		try {
 			cacheProfilerService = JMPFactory.getCacheProfilerService(config);
@@ -103,6 +111,9 @@ public class MiniProfilerServlet extends HttpServlet {
 				
 		resourceLoader = new MiniProfilerResourceLoader();
 		resourceReplacements.put("@@prefix@@", htmlIdPrefix);
+		resourceReplacements.put("@@baseURL@@", servletURL);
+		resourceReplacements.put("@@prefix@@", htmlIdPrefix);
+		logger.debug("Init'ed mini-profiler servlet");
 	}
 
 	@Override
@@ -121,6 +132,7 @@ public class MiniProfilerServlet extends HttpServlet {
 	private void doResource(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 		boolean success = true;
 		String resource = (String) req.getParameter("id");
+		
 		if (!isEmpty(resource)) {
 			if (resource.endsWith(".js")) {
 				resp.setContentType("text/javascript");
@@ -142,7 +154,7 @@ public class MiniProfilerServlet extends HttpServlet {
 				} else {
 					resp.setHeader("Cache-Control", "no-cache");
 				}
-
+				
 				PrintWriter w = resp.getWriter();
 				w.print(contents);
 			} else {

@@ -38,6 +38,8 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
 import au.com.funkworks.jmp.interfaces.CacheProfilerService;
@@ -50,12 +52,14 @@ import au.com.funkworks.jmp.interfaces.UserProfilerService;
  */
 public class MiniProfilerFilter implements Filter {
 	
+	private static final Logger logger = LoggerFactory.getLogger(MiniProfilerFilter.class);
 	
 	public static final String CACHE_KEY_FORMAT_STRING = "mini_profile_request_%s";
 
 	private static final String REQUEST_ID_HEADER = "X-Mini-Profile-Request-Id";
 	private static final String REQUEST_ID_ATTRIBUTE = "mini_profile_request_id";
-
+	private static final String REQUEST_BASE_URL = "mini_profile_base_url";
+			
 	private static final String INCLUDES_ATTRIBUTE = "mini_profile_includes";
 
 	private static final String PROFILE_SERVLET_URL_KEY = "servletURL";
@@ -64,6 +68,17 @@ public class MiniProfilerFilter implements Filter {
 	private static final String RESTRICT_TO_URLS_KEY = "restrictToURLs";
 	
 	private static final String HTML_ID_PREFIX_KEY = "htmlIdPrefix";
+	
+	private static final String JS_START = "<!-- miniprofiler js start -->";
+	private static final String JS_END = "<!-- miniprofiler js end -->";
+	private static final String LOAD_JS = "loadJS";
+	
+	
+	
+	/**
+	 * Whether to load js or not - useful if doing funky js lazy loading
+	 */
+	private boolean loadJS = true;
 	
 	//private static final String DATA_EXPIRY_KEY = "dataExpiry";
 
@@ -124,14 +139,18 @@ public class MiniProfilerFilter implements Filter {
 	
 	public void init(FilterConfig config) throws ServletException {
 		
+		logger.debug("Init'ing mini-profile filter");
+		
 		String configServletURL = config.getInitParameter(PROFILE_SERVLET_URL_KEY);
 		if (StringUtils.hasLength(configServletURL)) {
 			servletURL = configServletURL;
+			logger.debug("Servlet url configured: {}", servletURL);
 		}
 		String configRestrictToAdmins = config.getInitParameter(RESTRICT_TO_ADMINS_KEY);
 		if (StringUtils.hasLength(configRestrictToAdmins) && Boolean.parseBoolean(configRestrictToAdmins)) {
 			restricted = true;
 			restrictedToAdmins = true;
+			logger.debug("Restricted to admins only");
 		}
 		String configRestrictToEmails = config.getInitParameter(RESTRICT_TO_EMAILS_KEY);
 		if (StringUtils.hasLength(configRestrictToEmails)) {
@@ -140,7 +159,15 @@ public class MiniProfilerFilter implements Filter {
 			for (String email : emails) {
 				restrictedEmails.add(email.trim());
 			}
+			logger.debug("Restricted to emails only: {}", restrictedEmails);
 		}
+		
+		String loadJSStr = config.getInitParameter(LOAD_JS);
+		if (StringUtils.hasLength(loadJSStr) && !Boolean.valueOf(loadJSStr)) {
+			loadJS = false;
+			logger.debug("Not loading js - please load jquery tmpl and miniprofiler js");
+		}
+		
 		//String configDataExpiry = config.getInitParameter(DATA_EXPIRY_KEY);
 		//if (!isEmpty(configDataExpiry)) {
 		//	dataExpiry = Integer.parseInt(configDataExpiry);
@@ -153,6 +180,7 @@ public class MiniProfilerFilter implements Filter {
 					restrictedURLs.add(Pattern.compile(urlPattern));
 				}
 			}
+			logger.debug("Restricted to urls only: {}", restrictedURLs);
 		}
 		String configHtmlIdPrefix = config.getInitParameter(HTML_ID_PREFIX_KEY);
 		if (StringUtils.hasLength(configHtmlIdPrefix)) {
@@ -179,6 +207,8 @@ public class MiniProfilerFilter implements Filter {
 		resourceLoader = new MiniProfilerResourceLoader();
 		resourceReplacements.put("@@baseURL@@", servletURL);
 		resourceReplacements.put("@@prefix@@", htmlIdPrefix);
+		
+		logger.debug("Init'ed mini-profiler filter");
 	}
 
 	
@@ -234,11 +264,28 @@ public class MiniProfilerFilter implements Filter {
 		String requestId = (String) req.getAttribute(MiniProfilerFilter.REQUEST_ID_ATTRIBUTE);
 		if (requestId != null) {
 			String includesTemplate = resourceLoader.getResource("mini_profiler.html", resourceReplacements);
+									
 			if (includesTemplate != null) {
+				
 				result = includesTemplate.replace("@@requestId@@", requestId);
+				
+				// check if we need to strip out js
+				if (!loadJS) {
+					int startIndex = result.indexOf(JS_START);
+					int endIndex = result.indexOf(JS_END);
+					
+					String contentsStart = result.substring(0, startIndex);
+					String contentsEnd = result.substring(endIndex + JS_END.length(), result.length());
+					
+					result = contentsStart + contentsEnd;					
+				}
+				
+				
 			}
 		}
 		if (StringUtils.hasLength(result)) {
+			req.setAttribute(REQUEST_BASE_URL, servletURL);
+			req.setAttribute(REQUEST_ID_ATTRIBUTE, requestId);
 			req.setAttribute(INCLUDES_ATTRIBUTE, result);
 		}
 	}

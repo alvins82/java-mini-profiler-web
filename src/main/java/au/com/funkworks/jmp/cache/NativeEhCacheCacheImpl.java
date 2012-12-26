@@ -28,14 +28,13 @@ public class NativeEhCacheCacheImpl implements CacheProfilerService {
 		       .diskExpiryThreadIntervalSeconds(0));  
 		manager.addCache(cache);  
 	}
-
-	@Override
+	
 	public void put(String key, Map<String, Object> data) {
 		Element elem = new Element(key, data);
 		cache.put(elem);		
 	}
 	
-	@Override
+	
 	@SuppressWarnings("unchecked")
 	public Map<String, Object> get(String key) {		
 		Element elem = cache.get(key);
