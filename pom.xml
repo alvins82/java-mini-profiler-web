@@ -3,7 +3,7 @@
 
 	<groupId>au.com.funkworks.jmp</groupId>
 	<artifactId>java-mini-profiler-web</artifactId>
-	<version>0.6</version>
+	<version>0.7</version>
 	<packaging>jar</packaging>
 	<name>java-mini-profiler-web</name>
 
@@ -36,7 +36,7 @@
 		<dependency>
 			<groupId>au.com.funkworks.jmp</groupId>
 			<artifactId>java-mini-profiler-core</artifactId>
-			<version>0.6</version>
+			<version>0.7</version>
 		</dependency>
 
 		<dependency>
