@@ -55,12 +55,11 @@
 </div>
 {{if appstats && (appstats.rpcStats || appstats.rpcCalls)}}
 <div id="@@prefix@@-req-as">
- <h2>Appstats</h2>
  {{if appstats.rpcStats}}
- <h3>RPC Stats</h3>
+ <h3>Call Stats</h3>
  <table>
   <thead>
-   <tr><th width="66%">RPC</th><th width="17%"># of Calls</th><th width="17%">Total Time (ms)</th></tr>
+   <tr><th width="66%">Calls</th><th width="17%"># of Calls</th><th width="17%">Total Time (ms)</th></tr>
   </thead>
   <tbody>
    {{each(i, rpc) appstats.rpcStats}}

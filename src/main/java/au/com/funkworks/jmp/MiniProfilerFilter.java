@@ -233,7 +233,7 @@ public class MiniProfilerFilter implements Filter {
 
 			addIncludes(req);
 
-			MiniProfiler.Profile profile = null;
+			Profile profile = null;
 			long startTime = System.currentTimeMillis();
 			MiniProfiler.start();
 			try {

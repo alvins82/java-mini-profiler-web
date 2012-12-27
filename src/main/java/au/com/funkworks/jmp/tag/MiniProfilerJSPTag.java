@@ -25,7 +25,7 @@ import javax.servlet.jsp.JspException;
 import javax.servlet.jsp.tagext.BodyTagSupport;
 
 import au.com.funkworks.jmp.MiniProfiler;
-import au.com.funkworks.jmp.MiniProfiler.Step;
+import au.com.funkworks.jmp.Step;
 
 @SuppressWarnings("serial")
 public class MiniProfilerJSPTag extends BodyTagSupport {
